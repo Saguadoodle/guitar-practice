@@ -43,7 +43,9 @@ globalThis.__chordAudioChecks = { plays: [], stops: 0 }
 const chordAudioUrl = dataUrl(`export class ChordPlayer { async prepare() {} async hold(pitches) { return this.play(pitches,"hold") } release() { this.stop() } async play(pitches, mode) { globalThis.__chordAudioChecks.plays.push({pitches, mode}); return true } stop() { globalThis.__chordAudioChecks.stops++ } dispose() { this.stop() } }`)
 globalThis.__scaleUI = {plays:[],stops:0,fail:false,bpm:120}
 const scaleAudioUrl = dataUrl(`export class ScalePlayer {setBpm(bpm){globalThis.__scaleUI.bpm=bpm}async play(pitches,bpm,onNote,options={}){const state=globalThis.__scaleUI;if(state.fail)throw Error('failed');state.plays.push({pitches,bpm,...options});onNote(pitches[0].midi);return !options.loop}stop(){globalThis.__scaleUI.stops++}dispose(){this.stop()}}`)
-const moduleUrl = createModuleLoader({ react: hookUrl, '../chordAudio': chordAudioUrl, '../scaleAudio': scaleAudioUrl })
+globalThis.__jamUI={starts:[],stops:0,updates:[],mixers:[],fail:false,callbacks:null}
+const jamAudioUrl=dataUrl(`export const defaultJamMixer=()=>({master:.7,drums:.65,bass:.65,chords:.6,muted:{drums:false,bass:false,chords:false}});export class JamPlayer {async start(cycle,bpm,countIn,callbacks){const state=globalThis.__jamUI;state.starts.push({cycle,bpm,countIn});state.callbacks=callbacks;callbacks.onState('starting');if(state.fail){callbacks.onState('error','启动失败');return}callbacks.onState('playing');callbacks.onProgress({phase:countIn?'count-in':'playing',beat:1,bar:1,loop:1,cardId:cycle.cards[0].id,current:'C',next:'G',cycle,bpm})}updateBpm(bpm){globalThis.__jamUI.bpm=bpm}updateProgression(cycle){globalThis.__jamUI.updates.push(cycle)}cancelPendingProgression(){}setMixer(mixer){globalThis.__jamUI.mixers.push(mixer)}stop(){const state=globalThis.__jamUI;state.stops++;state.callbacks?.onProgress(null);state.callbacks?.onState('idle')}dispose(){this.stop()}}`)
+const moduleUrl = createModuleLoader({ react: hookUrl, '../jamAudio':jamAudioUrl, '../chordAudio': chordAudioUrl, '../scaleAudio': scaleAudioUrl })
 const { default: App } = await import(moduleUrl('src/App.tsx'))
 let tree
 function expand(node, path = 'root') {
@@ -198,7 +200,7 @@ for (const [fret, octave] of [[0, 2], [12, 3], [24, 4]]) {
   assert.equal(text(byClass('selection-note')), `当前音高F♯${octave}`)
 }
 // 七个地址、占位页与共享设置，以及返回指板后的局部练习状态。
-for (const id of ['jam', 'transcription', 'about']) {
+for (const id of ['transcription', 'about']) {
   navigate(id)
   assert.match(text(byClass('site-footer')), /1145141919810/)
   assert.match(text(byClass('placeholder-page')), /筹备中/)
@@ -231,6 +233,40 @@ navigate('fretboard')
 assert.match(text(byClass('open-summary')), /E2/)
 assert.match(text(byClass('sound-button')), /声音开/)
 assert.match(boardButtons()[149].props['aria-label'], /E4/)
+// J1：默认体验、编辑/移调、边界待应用、混音及共享设置。
+navigate('jam')
+const jamSelect=(name,value)=>{find(n=>n.type==='select'&&n.props['aria-label']===name).props.onChange({target:{value}});render()}
+const jamButton=()=>find(n=>n.type==='button'&&n.props.className?.includes('jam-start'))
+const jamAction=name=>find(n=>n.type==='button'&&(n.props['aria-label']===name||text(n)===name))
+const jamRoots=()=>nodes(tree).filter(n=>n.type==='select'&&/^和弦 \d+ 根音$/.test(n.props['aria-label']??'')).map(n=>n.props.value)
+assert.deepEqual(jamRoots(),['A','F','C','G']);assert.equal(find(n=>n.type==='input'&&n.props['aria-label']==='Jam BPM').props.value,'90')
+assert.equal(find(n=>n.type==='details').props.open,undefined)
+jamSelect('Jam 主音','C');assert.deepEqual(jamRoots(),['C','A♭','E♭','B♭'])
+const original=jamRoots();jamSelect('Jam 调式','major');assert.deepEqual(jamRoots(),original)
+jamAction('应用预设').props.onClick();render();assert.deepEqual(jamRoots(),['C','G','A','F'])
+jamSelect('和弦 1 时长','2');assert.equal(jamButton().props.disabled,true);assert.match(text(tree),/完整的 4\/4/)
+jamSelect('和弦 2 时长','2');assert.equal(jamButton().props.disabled,false)
+jamSelect('和弦 3 时长','8');jamAction('复制和弦 1').props.onClick();render();assert.equal(jamRoots().length,5)
+jamAction('删除和弦 2').props.onClick();render();assert.equal(jamRoots().length,4)
+jamAction('下移和弦 1').props.onClick();render();assert.equal(jamRoots()[0],'G');jamAction('上移和弦 2').props.onClick();render()
+jamSelect('和弦 2 根音','F♯');assert.match(text(tree),/调外和弦/);jamSelect('和弦 2 根音','G')
+await jamButton().props.onClick();render();assert.equal(jamButton().props['aria-pressed'],true);assert.equal(globalThis.__jamUI.starts.at(-1).countIn,true);assert.match(text(tree),/预备拍/)
+const applied=globalThis.__jamUI.starts.at(-1).cycle
+jamSelect('和弦 1 根音','D');assert.match(text(tree),/待下一轮/)
+find(n=>n.type==='input'&&n.props['aria-label']==='Jam BPM').props.onChange({target:{value:'120'}});render();assert.equal(globalThis.__jamUI.bpm,120);assert.match(text(tree),/待下一小节/)
+find(n=>n.type==='input'&&n.props['aria-label']==='静音贝斯').props.onChange({target:{checked:true}});render();assert.equal(globalThis.__jamUI.mixers.at(-1).muted.bass,true)
+find(n=>n.type==='input'&&n.props['aria-label']==='主音量').props.onChange({target:{value:'35'}});render();assert.equal(globalThis.__jamUI.mixers.at(-1).master,.35)
+find(n=>n.type==='input'&&n.props['aria-label']==='Jam BPM').props.onChange({target:{value:''}});render();assert.equal(jamButton().props.disabled,false,'空速度也能停止')
+await jamButton().props.onClick();render();assert.equal(jamButton().props['aria-pressed'],false);assert.equal(jamButton().props.disabled,true)
+find(n=>n.type==='input'&&n.props['aria-label']==='Jam BPM').props.onChange({target:{value:'90'}});render()
+const rootsBeforeTuning=jamRoots();await jamButton().props.onClick();render();const stopCount=globalThis.__jamUI.stops
+navigate('settings');choose('drop-d');navigate('jam');assert.ok(globalThis.__jamUI.stops>stopCount);assert.deepEqual(jamRoots(),rootsBeforeTuning);assert.equal(jamButton().props['aria-pressed'],false)
+navigate('settings');soundCheckbox().props.onChange({target:{checked:false}});render();navigate('jam');assert.equal(jamButton().props.disabled,true);jamAction('启用声音').props.onClick();render();assert.equal(jamButton().props.disabled,false)
+globalThis.__jamUI.fail=true;await jamButton().props.onClick();render();assert.match(text(tree),/启动失败/);assert.equal(jamButton().props['aria-pressed'],false);globalThis.__jamUI.fail=false
+jamSelect('Jam 预设','single');jamAction('应用预设').props.onClick();render();assert.equal(jamRoots().length,1)
+assert.equal(applied.bars,4)
+navigate('settings');choose('standard');navigate('fretboard')
+console.log('通过：J1默认/显式预设、整体移调/调式不覆盖、卡片增删复制排序、半小节无效提示、预备拍/开始停止/待应用、即时混音、调弦独立/静音/失败及离页停止')
 // 音阶独立选择、共享设置、单音不改主音、试听及显示状态。
 assert.deepEqual(nodes(byClass('desktop-navigation')).filter(n=>n.type==='a').map(text),['指板与音准','音阶','和弦','Jam Session','扒谱','设置','简介'])
 navigate('scales')

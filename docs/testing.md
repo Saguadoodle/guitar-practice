@@ -111,3 +111,7 @@ git diff --check
 - `npm run build`
 - 对应 `check-*.mjs`
 - 1 轮桌面 + 1 轮窄屏人工验收
+
+## Jam J1
+
+运行 `node scripts/check-jam.mjs`、`node scripts/check-jam-audio.mjs`，并运行 `check-ui.mjs light`／`dark`。覆盖预设／移调／44类型、时长、固定编配、三个速度分别五分钟时钟模拟、边界改速／换进行、音量静音、启停与失败，浏览器步骤见 README。

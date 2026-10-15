@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict'
+import {createModuleLoader} from './load-ts.mjs'
+const load=createModuleLoader()
+const {DEFAULT_JAM,jamPreset,validateProgression,transposeProgression,analyzeJamCard,chordTypeName}=await import(load('src/jam.ts'))
+const {compileJam,voiceChord,cardAtBeat,barEvents}=await import(load('src/jamArrangement.ts'))
+const {CHORD_TYPES,buildChord}=await import(load('src/chords.ts'))
+const {rootPitchClass}=await import(load('src/intervals.ts'))
+const {NOTE_OPTIONS}=await import(load('src/pitch.ts'))
+const names=cards=>cards.map(c=>buildChord(c.root,c.type).name)
+assert.deepEqual(names(DEFAULT_JAM),['Am','F','C','G'])
+assert.deepEqual(names(jamPreset('C','major')),['C','G','Am','F'])
+assert.deepEqual(DEFAULT_JAM.map(c=>analyzeJamCard(c,'A','minor').roman),['i','VI','III','VII'])
+assert.equal(analyzeJamCard({...DEFAULT_JAM[0],type:'major'},'A','minor').inKey,false)
+assert.equal(analyzeJamCard({...DEFAULT_JAM[0],root:'B',type:'half-dim7'},'C','major').roman,'viiø7')
+assert.equal(analyzeJamCard({...DEFAULT_JAM[0],type:'sus2'},'A','minor').roman,null)
+assert.equal(analyzeJamCard({...DEFAULT_JAM[0],root:'C',type:'maj7'},'C','major').roman,'Imaj7')
+assert.equal(validateProgression([{...DEFAULT_JAM[0],beats:2}]).errors.length,1)
+assert.ok(validateProgression([]).errors.length)
+assert.throws(()=>compileJam([{...DEFAULT_JAM[0],beats:2}]))
+for(const root of NOTE_OPTIONS)for(const mode of ['major','minor']){
+ const preset=jamPreset(root,mode),cycle=compileJam(preset)
+ assert.equal(cycle.bars,4);assert.equal(cycle.beats,16);assert.deepEqual(compileJam(preset),cycle)
+ assert.ok(preset.every(c=>analyzeJamCard(c,root,mode).inKey))
+ const transposed=transposeProgression(DEFAULT_JAM,'A',root)
+ transposed.forEach((c,i)=>{assert.equal(c.type,DEFAULT_JAM[i].type);assert.equal(c.beats,DEFAULT_JAM[i].beats);assert.equal((rootPitchClass(c.root)-rootPitchClass(DEFAULT_JAM[i].root)+12)%12,(rootPitchClass(root)-9+12)%12)})
+ compileJam(transposed)
+}
+for(const type of CHORD_TYPES){
+ const card={id:'one',root:'C',type:type.id,beats:4},cycle=compileJam([card]),pitches=buildChord('C',type.id).tones.map(t=>t.pitchClass)
+ assert.ok(chordTypeName(type).includes('（'))
+ for(const event of cycle.events){assert.ok(event.beat>=0&&event.beat<4);if(event.midi!==undefined){assert.ok(pitches.includes(event.midi%12));assert.ok(event.part==='bass'?event.midi>=36&&event.midi<=59:event.midi>=55&&event.midi<=79)}}
+ assert.ok(cycle.events.some(e=>e.part==='bass'&&e.beat===0&&e.midi%12===0));assert.ok(cycle.events.filter(e=>e.part==='chords').length<=14)
+}
+const cycle=compileJam(DEFAULT_JAM),mixed=compileJam([{...DEFAULT_JAM[0],beats:2},{...DEFAULT_JAM[1],beats:2},{...DEFAULT_JAM[2],beats:8}])
+assert.equal(mixed.bars,3);assert.equal(cardAtBeat(mixed,1.99),0);assert.equal(cardAtBeat(mixed,2),1);assert.equal(cardAtBeat(mixed,4),2);assert.equal(cardAtBeat(mixed,12),0)
+assert.ok(barEvents(mixed,1).every(e=>e.beat>=0&&e.beat<4))
+const a=voiceChord(DEFAULT_JAM[0]),f=voiceChord(DEFAULT_JAM[1],a)
+for(const midi of a.filter(m=>f.includes(m)))assert.ok(f.includes(midi))
+assert.ok(a.filter(m=>f.includes(m)).length>=2,'Am至F保留A与C共同音')
+assert.equal(cycle.events.filter(e=>e.part==='drums'&&e.drum==='hat').length,32)
+console.log('通过：预设/44和弦/21主音移调、调内级数/调外标记、半/整/两小节与循环边界、共同音配音、固定三声部及合理音域')

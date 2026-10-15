@@ -1,6 +1,7 @@
 import Navigation from './components/Navigation'
 import FretboardPage from './pages/FretboardPage'
 import SettingsPage from './pages/SettingsPage'
+import JamPage from './pages/JamPage'
 import ScalesPage from './pages/ScalesPage'
 import ChordsPage from './pages/ChordsPage'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -31,7 +32,8 @@ export default function App() {
       <div hidden={page.id !== 'settings'}><SettingsPage shared={shared} /></div>
       <div hidden={page.id !== 'chords'}><ChordsPage shared={shared} active={page.id === 'chords'} /></div>
       <div hidden={page.id !== 'scales'}><ScalesPage shared={shared} active={page.id === 'scales'} /></div>
-      {page.id !== 'scales' && page.id !== 'fretboard' && page.id !== 'settings' && page.id !== 'chords' && <PlaceholderPage title={page.title} description={page.description} />}
+      <div hidden={page.id !== 'jam'}><JamPage shared={shared} active={page.id === 'jam'} /></div>
+      {page.id !== 'jam' && page.id !== 'scales' && page.id !== 'fretboard' && page.id !== 'settings' && page.id !== 'chords' && <PlaceholderPage title={page.title} description={page.description} />}
     </main>
     <footer className="site-footer"><span>Saguadlib · 1145141919810</span><span>{page.title}</span></footer>
   </div>
