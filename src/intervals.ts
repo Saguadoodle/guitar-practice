@@ -15,13 +15,3 @@ export function toRoman(degree: string) {
   return degree.replace(/\d+/, ['I','II','III','IV','V','VI','VII'][(number-1)%7])
 }
 export const CHROMATIC_DEGREES = ['1','♭2','2','♭3','3','4','♯4','5','♭6','6','♭7','7']
-
-/** 用户自定义单音标签；保留增减音程拼写，不用于调内和弦性质分析。 */
-export function intervalLabel(degree: string) {
-  const n = Number(degree.match(/\d+/)?.[0])
-  const simple = (n-1)%7+1
-  const accidental = degree.replace(/\d+/,'')
-  const major = ['','I','II','III','IV','V','VI','VII'][simple]
-  if(accidental === '♭' && [2,3,6,7].includes(simple)) return major.toLowerCase()
-  return accidental+major
-}

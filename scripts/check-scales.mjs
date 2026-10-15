@@ -9,7 +9,7 @@ assert.equal(EXPLORER_SCALES.length,13)
 for(const definition of EXPLORER_SCALES){assert.deepEqual(definition.offsets,expected[definition.id]);assert.ok(REFERENCE_SCALES.includes(definition));assert.match(definition.name,/（.+）/)}
 for(const [root,id,names]of [['C','major','C D E F G A B'],['D','dorian','D E F G A B C'],['A','minor-pentatonic','A C D E G'],['F','major','F G A B♭ C D E'],['F♯','major','F♯ G♯ A♯ B C♯ D♯ E♯'],['C♯','harmonic-minor','C♯ D♯ E F♯ G♯ A B♯']])assert.equal(buildScale(root,id).tones.map(t=>t.noteName).join(' '),names)
 assert.deepEqual(buildScale('C♯','major').tones.map(t=>t.pitchClass),buildScale('D♭','major').tones.map(t=>t.pitchClass))
-assert.deepEqual(buildScale('A','minor-pentatonic').tones.map(t=>scaleToneAt(buildScale('A','minor-pentatonic'),t.pitchClass).degree),['I','iii','IV','V','vii'])
+assert.deepEqual(buildScale('A','minor-pentatonic').tones.map(t=>scaleToneAt(buildScale('A','minor-pentatonic'),t.pitchClass).degree),['i','III','iv','v','VII'])
 const natural={C:0,D:2,E:4,F:5,G:7,A:9,B:11},steps=[0,2,4,5,7,9,11],letters='CDEFGAB'
 const custom=validateTuning(STANDARD_TUNING.map((p,i)=>({noteName:i===5?'F♯':p.noteName,octave:String(p.octave)}))).tuning
 let cells=0

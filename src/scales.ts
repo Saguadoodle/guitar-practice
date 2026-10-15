@@ -1,6 +1,6 @@
 import { getPitch, MAX_FRET } from './pitch'
 import type { Tuning } from './pitch'
-import { CHROMATIC_DEGREES, modulo, rootPitchClass, spellTone, intervalLabel } from './intervals'
+import { CHROMATIC_DEGREES, modulo, rootPitchClass, spellTone, toRoman } from './intervals'
 export const SCALE_DEFINITIONS = [
   { id: 'major', name: '大调／伊奥尼亚（Major / Ionian）', category: '七声音阶', offsets: [0,2,4,5,7,9,11], degrees: ['1','2','3','4','5','6','7'] },
   { id: 'minor', name: '自然小调／爱奥利亚（Natural Minor / Aeolian）', category: '七声音阶', offsets: [0,2,3,5,7,8,10], degrees: ['1','2','♭3','4','5','♭6','♭7'] },
@@ -28,10 +28,40 @@ export function buildScale(root: string, id: string) {
   return {root, rootClass: rootPitchClass(root), definition, tones: definition.offsets.map((offset,index) => spellTone(root,offset,definition.degrees[index]))}
 }
 export type Scale = ReturnType<typeof buildScale>
+export function diatonicTriad(definition: ScaleDefinition, index: number) {
+  if (definition.offsets.length !== 7 || index < 0 || index > 6) return null
+  const at = (n:number) => definition.offsets[n%7]+12*Math.floor(n/7)
+  const intervals = [0,at(index+2)-at(index),at(index+4)-at(index)]
+  const quality = intervals[1]===4 && intervals[2]===7 ? 'major'
+    : intervals[1]===3 && intervals[2]===7 ? 'minor'
+    : intervals[1]===3 && intervals[2]===6 ? 'diminished'
+    : intervals[1]===4 && intervals[2]===8 ? 'augmented' : null
+  const roman = toRoman(String(index+1))
+  const label = quality==='major' ? roman : quality==='minor' ? roman.toLowerCase()
+    : quality==='diminished' ? roman.toLowerCase()+'°' : quality==='augmented' ? roman+'+' : null
+  return {intervals,quality,label}
+}
+const PARENTS:Record<string,string> = {'major-pentatonic':'major','minor-pentatonic':'minor','major-blues':'major','minor-blues':'minor'}
+export function scaleDegreeLabel(root:string, definition:ScaleDefinition, midi:number) {
+  const relative=modulo(midi-rootPitchClass(root))
+  const index=definition.offsets.findIndex(offset=>offset===relative)
+  const tone=index<0 ? spellTone(root,relative,CHROMATIC_DEGREES[relative]) : spellTone(root,relative,definition.degrees[index])
+  const parentId=PARENTS[definition.id]
+  const parent=parentId ? SCALE_DEFINITIONS.find(s=>s.id===parentId)! : definition
+  const parentIndex=parent.offsets.findIndex(offset=>offset===relative)
+  const triad=index>=0 && parentIndex>=0 ? diatonicTriad(parent,parentIndex) : null
+  return {label:triad?.label??tone.noteName,triad,spelling:tone}
+}
+export function stablePitchClasses(scale:Scale) {
+  const parentId=PARENTS[scale.definition.id]
+  const parent=parentId ? SCALE_DEFINITIONS.find(s=>s.id===parentId)! : scale.definition
+  return (diatonicTriad(parent,0)?.intervals.filter(interval=>interval!==6)??[0]).map(offset=>modulo(offset+scale.rootClass))
+}
 export function scaleToneAt(scale: Scale, midi: number) {
   const relative = modulo(midi-scale.rootClass)
   const tone = scale.tones.find(tone => tone.pitchClass === modulo(midi))
-  return {tone, spelling: tone ?? spellTone(scale.root,relative,CHROMATIC_DEGREES[relative]), degree: intervalLabel(tone?.degree ?? CHROMATIC_DEGREES[relative]), isRoot: relative === 0}
+  const info=scaleDegreeLabel(scale.root,scale.definition,midi)
+  return {tone, spelling:info.spelling, degree:info.label, isRoot: relative === 0}
 }
 export type ScalePitch = ReturnType<typeof getPitch>
 export function scalePlayback(scale: Scale, tuning: Tuning, direction: 'up'|'down'|'both') {

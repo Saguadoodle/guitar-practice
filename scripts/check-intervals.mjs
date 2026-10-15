@@ -1,15 +1,30 @@
 import assert from 'node:assert/strict'
 import {createModuleLoader} from './load-ts.mjs'
-const load=createModuleLoader(),{intervalLabel,toRoman}=await import(load('src/intervals.ts'))
-const {buildScale,scaleToneAt}=await import(load('src/scales.ts'))
+const load=createModuleLoader()
+const {toRoman}=await import(load('src/intervals.ts'))
+const {buildScale,scaleToneAt,diatonicTriad,EXPLORER_SCALES}=await import(load('src/scales.ts'))
 const {buildChord}=await import(load('src/chords.ts'))
-const {degreeAt,REFERENCE_SCALES}=await import(load('src/referenceScales.ts'))
-for(const [degree,label]of [['1','I'],['♭2','ii'],['2','II'],['♭3','iii'],['3','III'],['4','IV'],['♯4','♯IV'],['♭5','♭V'],['5','V'],['♭6','vi'],['6','VI'],['♭7','vii'],['7','VII'],['♯2','♯II'],['♭♭7','♭♭VII'],['♭9','ii'],['♯11','♯IV'],['♭13','vi']])assert.equal(intervalLabel(degree),label)
-const scale=buildScale('C','minor'),chord=buildChord('C','minor')
-for(const [midi,label]of [[50,'II'],[51,'iii'],[52,'III'],[56,'vi'],[57,'VI'],[58,'vii'],[59,'VII']])for(const octave of [0,12,24]){assert.equal(scaleToneAt(scale,midi+octave).degree,label);assert.equal(degreeAt(chord,undefined,midi+octave).label,label)}
-assert.equal(scaleToneAt(buildScale('C','lydian'),54).degree,'♯IV')
-assert.equal(scaleToneAt(buildScale('C','locrian'),54).degree,'♭V')
-assert.equal(degreeAt(buildChord('C','7b5'),undefined,54).label,'♭V')
-assert.equal(degreeAt(buildChord('C','7b5'),REFERENCE_SCALES.find(s=>s.id==='lydian'),54).label,'♭V','和弦成员优先保留和弦实际拼写')
+const {degreeAt}=await import(load('src/referenceScales.ts'))
+for(const [root,id,expected]of [
+ ['C','major',['I','ii','iii','IV','V','vi','vii°']],
+ ['A','minor',['i','ii°','III','iv','v','VI','VII']],
+ ['A','harmonic-minor',['i','ii°','III+','iv','V','VI','vii°']],
+ ['D','dorian',['i','ii','III','IV','v','vi°','VII']],
+ ['A','melodic-minor',['i','ii','III+','IV','V','vi°','vii°']],
+ ['C','major-pentatonic',['I','ii','iii','V','vi']],
+ ['A','minor-pentatonic',['i','III','iv','v','VII']],
+ ['C','major-blues',['I','ii','E♭','iii','V','vi']],
+ ['A','minor-blues',['i','III','iv','E♭','v','VII']],
+]){
+ const scale=buildScale(root,id),chord=buildChord(root,'major')
+ for(const octave of [0,12,24])assert.deepEqual(scale.tones.map(t=>scaleToneAt(scale,t.pitchClass+octave).degree),expected)
+ assert.deepEqual(scale.tones.map(t=>degreeAt(chord,scale.definition,t.pitchClass).label),expected)
+}
+for(const d of EXPLORER_SCALES.filter(s=>s.offsets.length===7))for(let i=0;i<7;i++){
+ const triad=diatonicTriad(d,i)
+ assert.ok(triad.quality);assert.deepEqual(triad.intervals,[0,(d.offsets[(i+2)%7]+12*Math.floor((i+2)/7))-d.offsets[i],(d.offsets[(i+4)%7]+12*Math.floor((i+4)/7))-d.offsets[i]])
+}
 assert.equal(toRoman('♭3'),'♭III');assert.equal(buildChord('C','minor').tones[1].degree,'♭3')
-console.log('通过：自定义大小写音程、跨八度、增四/减五及重升降拼写，两板块同源，常规和弦公式不变')
+assert.equal(degreeAt(buildChord('C','7b5'),undefined,54).label,'♭V')
+assert.equal(scaleToneAt(buildScale('C','major'),49).degree,'D♭')
+console.log('通过：C大调/A自然小调/A和声小调/D多利亚及旋律小调真实叠三度性质、跨八度、母音阶五声/布鲁斯、两页一致，音程公式独立')

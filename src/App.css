@@ -304,3 +304,5 @@ dd small { font-size: 10px; display: inline-block; color: var(--accent-text); ma
 .scale-card input:focus-visible { outline:3px solid var(--secondary); outline-offset:3px; }
 .scale-card input[aria-invalid="true"] { border-color:var(--error); }
 .tempo-hint { color:var(--muted); font-size:13px; }
+
+.scale-card .playback-active { outline:3px solid var(--secondary); outline-offset:3px; box-shadow:inset 0 -4px 0 var(--on-accent); font-weight:700; }

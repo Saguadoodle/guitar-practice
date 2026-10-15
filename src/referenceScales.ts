@@ -1,6 +1,6 @@
 import type { Chord } from './chords'
-import { SCALE_DEFINITIONS } from './scales'
-import { CHROMATIC_DEGREES, intervalLabel } from './intervals'
+import { SCALE_DEFINITIONS, scaleDegreeLabel } from './scales'
+import { CHROMATIC_DEGREES, toRoman } from './intervals'
 export { toRoman } from './intervals'
 export const REFERENCE_SCALES = SCALE_DEFINITIONS
 export type ReferenceScale = typeof REFERENCE_SCALES[number]
@@ -10,7 +10,7 @@ export function scaleSuggestions(chord: Chord) {
 export function degreeAt(chord: Chord, scale: ReferenceScale | undefined, midi: number) {
   const relative = (midi % 12 - chord.rootClass + 12) % 12
   const scaleIndex = scale?.offsets.findIndex((offset) => offset === relative) ?? -1
-  const tone = chord.tones.find((item) => item.pitchClass === midi % 12)
-  const degree = tone?.degree ?? (scale && scaleIndex >= 0 ? scale.degrees[scaleIndex] : CHROMATIC_DEGREES[relative])
-  return { label: intervalLabel(degree), inScale: scaleIndex >= 0 }
+  if(scale) return {label:scaleDegreeLabel(chord.root,scale,midi).label,inScale:scaleIndex>=0}
+  const tone=chord.tones.find(item=>item.pitchClass===midi%12)
+  return {label:toRoman(tone?.degree??CHROMATIC_DEGREES[relative]),inScale:false}
 }
