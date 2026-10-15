@@ -332,3 +332,30 @@ dd small { font-size: 10px; display: inline-block; color: var(--accent-text); ma
 .jam-mixer-channel input[type="range"] { width:100%; accent-color:var(--accent); min-height:32px; }
 .jam-mixer-channel output { color:var(--muted); }
 @media(max-width:700px){ .jam-controls label { width:100%; } .jam-controls select { min-width:0; flex:1; } .jam-cards { grid-template-columns:1fr; } .jam-mixer { grid-template-columns:1fr; } .jam-now { align-items:flex-start; flex-direction:column; } }
+
+/* J2 panels retain native details/keyboard controls across both themes. */
+.jam-parts {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px;}
+.jam-part {min-width:0;background:var(--surface-soft);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.jam-part>summary {font-weight:bold;cursor:pointer;min-height:44px;}
+.jam-part summary span {display:block;font-size:.8em;color:var(--muted);margin-top:6px;}
+.jam-part-fields>label,.jam-part-fields details label {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0;}
+.jam-part-fields select {width:100%;min-width:0;}
+.jam-part-fields input[type=range] {width:100%;accent-color:var(--accent);}
+.jam-part-fields select,.jam-library input {min-height:44px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;max-width:100%;box-sizing:border-box;}
+.jam-part-fields details {margin-top:16px;}
+.jam-part-fields details summary {min-height:44px;cursor:pointer;}
+.jam-master {display:flex;gap:16px;align-items:center;flex-wrap:wrap;min-height:44px;}
+.jam-master input {accent-color:var(--accent);}
+.jam-library-save,.jam-library li {display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:12px 0;}
+.jam-library ul {list-style:none;padding:0;}
+.jam-library input {width:220px;}
+.jam-library label {display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.jam-preset-preview {overflow-wrap:anywhere;line-height:1.8;}
+.jam-lock {justify-content:flex-start!important;}
+@media(max-width:900px){.jam-parts {grid-template-columns:1fr;}}
+
+.jam-part-fields label {min-height:44px;}
+.jam-part-fields input[type=range],.jam-master input {min-height:32px;}
+.jam-part-fields input[type=checkbox] {width:18px;height:18px;accent-color:var(--accent);}
+.jam-controls input[aria-label="Jam 随机种子"] {width:160px;max-width:100%;}
+.jam-param-help {font-size:.85em;color:var(--muted);line-height:1.6;}

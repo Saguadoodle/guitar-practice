@@ -51,5 +51,42 @@ try{
  for(let i=0;i<100;i++){await player.start(cycle,300,false,callbacks);player.stop();assert.equal(timers.size,0)}
  let wake;resume=new Promise(resolve=>wake=resolve);const pending=player.start(cycle,90,true,callbacks);player.stop();wake();await pending;resume=null;assert.equal(timers.size,0)
  fail=true;await player.start(cycle,90,false,callbacks);assert.equal(statuses.at(-1).s,'error');assert.equal(timers.size,0);fail=false;player.dispose();assert.equal(listeners.size,0)
+ // J2: 同一个播放器在小节与轮边界更新，不启动第二个任务。
+ const {defaultJamConfig,applyStyle,regenerate}=await import(load('src/jamConfig.ts'))
+ const {STANDARD_TUNING}=await import(load('src/pitch.ts'))
+ const {pitchedJamSamples}=await import(load('src/jamTimbres.ts'))
+ const c=defaultJamConfig(),j2=compileJam(DEFAULT_JAM,c)
+ assert.notDeepEqual(drumSamples('snare',8000,.3,'dry'),drumSamples('snare',8000,.3,'electronic'))
+ assert.notDeepEqual(drumSamples('kick',8000,.3,'dry'),drumSamples('kick',8000,.3,'electronic'))
+ assert.notDeepEqual(drumSamples('hat',8000,.3,'dry'),drumSamples('hat',8000,.3,'electronic'))
+ for(const style of ['pop','funk','ambient']){
+  const cfg=applyStyle(c,style),compiled=compileJam(DEFAULT_JAM,cfg),rate=8000,seconds=60/90,output=new Float32Array(Math.ceil(compiled.beats*seconds*rate)+rate*8)
+  for(const event of compiled.events){const duration=Math.max(.025,Math.min(8,event.duration*seconds*.95)),wave=event.drum?drumSamples(event.drum,rate,duration,event.timbre):pitchedJamSamples(event.midi,rate,duration,event.timbre),offset=Math.round((event.beat*seconds+(event.delay??0))*rate);for(let i=0;i<wave.length&&offset+i<output.length;i++)output[offset+i]+=wave[i]*event.level}
+  assert.ok(output.every(x=>Number.isFinite(x)&&Math.abs(x)<.95),style+' 满音量混合不削波')
+ }
+ now=0;sources=[];gains=[];const jp=new JamPlayer(),jprogress=[],jstates=[],jcb={onState:(s,m)=>jstates.push({s,m}),onProgress:p=>{if(p)jprogress.push(p)}}
+ await jp.start(j2,120,false,jcb);advance(.1)
+ const edited=structuredClone(c);edited.parts.drums.timbre='electronic';edited.parts.bass.pattern='long'
+ jp.updateProgression(compileJam(DEFAULT_JAM,edited));jp.updateParts(edited,STANDARD_TUNING,'drums')
+ advance(1.85);assert.equal(jprogress.at(-1).cycle.config.parts.drums.timbre,'dry')
+ advance(.12);assert.equal(jprogress.at(-1).cycle.config.parts.drums.timbre,'electronic');assert.equal(jprogress.at(-1).cycle.config.parts.bass.pattern,'fifth','只有修改的鼓参数下小节应用')
+ const whole=applyStyle(edited,'funk');jp.updateWhole(compileJam(DEFAULT_JAM,whole));advance(2)
+ assert.equal(jprogress.at(-1).cycle.config.style,'pop','整套编配不在中间小节提前生效')
+ advance(4);assert.equal(jprogress.at(-1).cycle.config.style,'funk');assert.equal(timers.size,1)
+
+ // 整套待下轮期间再次编辑单声部，不能把其他声部永久留在旧风格。
+ const ambient=applyStyle(whole,'ambient');jp.updateWhole(compileJam(DEFAULT_JAM,ambient))
+ const changed=structuredClone(ambient);changed.parts.bass.pattern='quarter';jp.updateParts(changed,STANDARD_TUNING,'bass')
+ advance(8.1);assert.equal(jprogress.at(-1).cycle.config.style,'ambient');assert.equal(jprogress.at(-1).cycle.config.parts.drums.pattern,'half');assert.equal(jprogress.at(-1).cycle.config.parts.bass.pattern,'quarter')
+ // 反复改速、换音色、重新编配，回收旧排程和声源。
+ for(let i=0;i<50;i++){const cfg=regenerate(whole);cfg.parts.drums.timbre=i%2?'dry':'electronic';jp.updateParts(cfg,STANDARD_TUNING,'drums');jp.updateBpm(i%2?60:300);if(i%5===0)jp.updateWhole(compileJam(DEFAULT_JAM,cfg));advance(.15);assert.equal(timers.size,1);assert.ok(sources.filter(s=>!s.ended).length<200)}
+ jp.stop();const n=sources.length;advance(1);assert.equal(sources.length,n);assert.equal(timers.size,0);jp.dispose()
+ for(const bpm of [60,120,300]){
+  now=0;sources=[];gains=[];const p=new JamPlayer();await p.start(compileJam(DEFAULT_JAM,{...c,variation:'subtle'}),bpm,false,jcb);advance(301)
+  assert.equal(jstates.at(-1).s,'playing');assert.equal(timers.size,1);assert.ok(sources.filter(s=>!s.ended).length<200)
+  const expected=Math.floor((now-.04)/(4*60/bpm));assert.equal((jprogress.at(-1).loop-1)*4+jprogress.at(-1).bar-1,expected)
+  p.stop();advance(.1);assert.equal(sources.filter(s=>!s.ended).length,0);p.dispose()
+ }
+ console.log('通过：J2各音色实际波形不同、三风格满音量混合、单声部下小节/整套下轮、反复改速换音色/编配无叠加、60/120/300 BPM各五分钟有界声源')
  console.log('通过：60/90/300 BPM分别连续模拟五分钟无漂移/重复/堆积，预备拍、边界改速/下轮改进行、撤回提前排程、即时音量静音、100次启停及暂停/失败')
 }finally{globalThis.setInterval=realSet;globalThis.clearInterval=realClear}
