@@ -1,3 +1,4 @@
+import BpmInput from '../components/BpmInput'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildScale, EXPLORER_SCALES, scalePlayback, scaleToneAt, stablePitchClasses } from '../scales'
 import { ScalePlayer } from '../scaleAudio'
@@ -61,7 +62,7 @@ export default function ScalesPage({shared,active}: {shared:SharedSettings;activ
       </div>
       <h2>{root} · {scale.definition.name}</h2><p className="scale-formula">公式：{scale.tones.map(t=>toRoman(t.degree)).join('、')}</p>
       <ul className="chord-tones scale-tones">{scale.tones.map(t=><li key={t.degree}><strong>{t.noteName}</strong><span>{scaleToneAt(scale,t.pitchClass).degree===t.noteName?'附加音':scaleToneAt(scale,t.pitchClass).degree}</span></li>)}</ul>
-      <div className="chord-controls"><label>BPM<input type="number" aria-label="试听速度" min={60} max={300} step={1} inputMode="decimal" value={tempoInput} aria-invalid={!tempoValid} aria-describedby="tempo-feedback" onChange={e=>{const value=e.target.value;setTempoInput(value);const valid=validBpm(value);if(valid!==null){setBpm(valid);player.current?.setBpm(valid)}}}/></label><span className="scale-range">试听音域：{audition?.range??'当前指板无法提供完整八度'}</span></div>
+      <div className="chord-controls"><label>BPM<BpmInput label="试听速度" value={tempoInput} describedBy="tempo-feedback" onValue={next=>{const value=next;setTempoInput(value);const valid=validBpm(value);if(valid!==null){setBpm(valid);player.current?.setBpm(valid)}}}/></label><span className="scale-range">试听音域：{audition?.range??'当前指板无法提供完整八度'}</span></div>
       <p id="tempo-feedback" role={tempoValid?undefined:'status'} className={tempoValid?'tempo-hint':'audio-error'}>{tempoValid?'四分音符 = 1 拍；所有模式为十六分音符。':`请输入 60—300 的有效 BPM；正在播放时沿用 ${bpm} BPM。`}</p>
       <div className="chord-playback">{([['up','上行'],['down','下行'],['both','上行＋下行'],['random','随机']] as const).map(([value,label])=>{
         const selected=mode.key===key&&mode.value===value

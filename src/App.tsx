@@ -1,3 +1,4 @@
+import TranscriptionPage from './pages/TranscriptionPage'
 import Navigation from './components/Navigation'
 import FretboardPage from './pages/FretboardPage'
 import SettingsPage from './pages/SettingsPage'
@@ -16,8 +17,8 @@ export default function App() {
   const { tuning, tuningName, soundEnabled } = shared.preferences
   return <div className="app">
     <header className="site-header">
-      <a className="brand" href="#/fretboard"><span className="brand-icon" aria-hidden="true">♬</span> Saguadlib <span className="brand-subtitle">GUITAR PRACTICE</span></a>
-      <span className="version">一点一点，熟悉音乐。</span>
+      <a className="brand" href="#/fretboard"><span className="brand-icon" aria-hidden="true">♬</span> SaguaNoodle <span className="brand-subtitle">GUITAR PRACTICE</span></a>
+      <span className="version">1145141919810</span>
     </header>
     <Navigation current={page.id} />
     <div className="shared-summary" aria-label="全局设置摘要">
@@ -33,8 +34,9 @@ export default function App() {
       <div hidden={page.id !== 'chords'}><ChordsPage shared={shared} active={page.id === 'chords'} /></div>
       <div hidden={page.id !== 'scales'}><ScalesPage shared={shared} active={page.id === 'scales'} /></div>
       <div hidden={page.id !== 'jam'}><JamPage shared={shared} active={page.id === 'jam'} /></div>
-      {page.id !== 'jam' && page.id !== 'scales' && page.id !== 'fretboard' && page.id !== 'settings' && page.id !== 'chords' && <PlaceholderPage title={page.title} description={page.description} />}
+      {page.id === 'transcription' && <TranscriptionPage shared={shared} />}
+      {page.id !== 'transcription' && page.id !== 'jam' && page.id !== 'scales' && page.id !== 'fretboard' && page.id !== 'settings' && page.id !== 'chords' && <PlaceholderPage title={page.title} description={page.description} />}
     </main>
-    <footer className="site-footer"><span>Saguadlib · 1145141919810</span><span>{page.title}</span></footer>
+    <footer className="site-footer"><span>SaguaNoodle · 1145141919810</span><span>{page.title}</span></footer>
   </div>
 }

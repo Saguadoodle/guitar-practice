@@ -1,3 +1,4 @@
+import BpmInput from '../components/BpmInput'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SharedSettings } from '../useAppSettings'
 import { NOTE_OPTIONS } from '../pitch'
@@ -87,7 +88,7 @@ export default function JamPage({shared,active}:{shared:SharedSettings;active:bo
   <label>进行预设<select aria-label="Jam 预设" value={preset} onChange={e=>setPreset(e.target.value)}>{[...new Set(JAM_PRESETS.map(p=>p.category))].map(category=><optgroup label={category} key={category}>{JAM_PRESETS.filter(p=>p.category===category).map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</optgroup>)}</select></label>
   <button className="plain-button" onClick={()=>{const p=JAM_PRESETS.find(p=>p.id===preset)!;setCards(presetCards(p,root));setMode(p.mode)}}>应用预设</button>
   <button className="plain-button" onClick={()=>{const next=generateProgression(cards,root,mode,config.seed);setCards(next);if(JSON.stringify(next)===JSON.stringify(cards))setStorageMessage('在当前锁定与调式条件下没有另一组进行；可解锁卡片或选择其他预设。')}}>换一组进行</button>
-  <label>BPM<input type="number" min="60" max="300" step="1" inputMode="decimal" aria-label="Jam BPM" aria-invalid={validBpm(tempo)===null} value={tempo} onChange={e=>{setTempo(e.target.value);const valid=validBpm(e.target.value);if(valid!==null){setBpm(valid);player.current?.updateBpm(valid)}}}/></label>
+  <label>BPM<BpmInput label="Jam BPM" value={tempo} onValue={next=>{setTempo(next);const valid=validBpm(next);if(valid!==null){setBpm(valid);player.current?.updateBpm(valid)}}}/></label>
   <label className="jam-count-toggle"><input type="checkbox" checked={countIn} onChange={e=>setCountIn(e.target.checked)}/>一小节预备拍</label>
  </div><p className="jam-style">{({pop:'流行／轻摇滚',funk:'放克',ambient:'氛围',custom:'自定义'})[config.style]} · 4/4 · {validation.bars%1===0?`${validation.bars} 小节`:`${validation.beats} 拍`} · 四分音符 = 1 拍</p>
  <div className="chord-controls jam-controls">

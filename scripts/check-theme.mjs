@@ -10,9 +10,9 @@ const theme = await import(`data:text/javascript;base64,${Buffer.from(compiled).
 const html = fs.readFileSync('index.html', 'utf8')
 const bootstrap = html.match(/<script>([\s\S]*?)<\/script>/)[1]
 assert.ok(html.indexOf('<script>') < html.indexOf('src="/src/main.tsx"'))
-assert.match(html, /<title>Saguadlib/)
+assert.match(html, /<title>SaguaNoodle/)
 assert.ok(!fs.readFileSync('src/App.tsx', 'utf8').includes('弦间'))
-assert.match(fs.readFileSync('README.md', 'utf8'), /^# Saguadlib/)
+assert.match(fs.readFileSync('README.md', 'utf8'), /^# SaguaNoodle/)
 
 function environment(saved, dark, blocked = false) {
   let value = saved

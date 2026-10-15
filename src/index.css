@@ -1,4 +1,5 @@
 :root {
+  --media-background: #000000;
   --bg: #fdf6e3;
   --text: #5c6a72;
   --accent: #93b259;
@@ -33,6 +34,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 :root[data-theme="dark"] {
+  --media-background: #000000;
   --bg: #2d353b;
   --text: #dacbac;
   --accent: #a7c080;
@@ -62,6 +64,7 @@
 /* 初始化脚本不可用时，也能在首次绘制时遵循系统深色。 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+  --media-background: #000000;
   --bg: #2d353b;
   --text: #dacbac;
   --accent: #a7c080;

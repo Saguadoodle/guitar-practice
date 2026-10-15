@@ -107,7 +107,7 @@ const assertHidden = () => {
   assert.ok(!/音名|八度|频率|MIDI/.test(text(detail())))
 }
 render()
-assert.match(text(byClass('brand')), /Saguadlib/)
+assert.match(text(byClass('brand')), /SaguaNoodle/)
 const themeSelect = () => find((node) => node.type === 'select' && node.props['aria-label'] === '主题')
 navigate('settings')
 assert.equal(themeSelect().props.value, initialTheme)
@@ -200,8 +200,15 @@ for (const [fret, octave] of [[0, 2], [12, 3], [24, 4]]) {
   await click(6, fret); assertHidden(); reveal()
   assert.equal(text(byClass('selection-note')), `当前音高F♯${octave}`)
 }
+// 扒谱初始状态不能伪装可用媒体或编造BPM。
+navigate('transcription')
+assert.equal(find(n=>n.type==='button'&&text(n)==='播放').props.disabled,true)
+assert.equal(find(n=>n.type==='button'&&text(n)==='分析整段').props.disabled,true)
+assert.match(text(tree),/原曲BPM未知/)
+assert.match(text(tree),/不包含媒体/)
+assert.equal(nodes(tree).filter(n=>n.type==='video').length,1)
 // 七个地址、占位页与共享设置，以及返回指板后的局部练习状态。
-for (const id of ['transcription', 'about']) {
+for (const id of ['about']) {
   navigate(id)
   assert.match(text(byClass('site-footer')), /1145141919810/)
   assert.match(text(byClass('placeholder-page')), /筹备中/)
